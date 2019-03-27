@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using StudentExercisesAPI.Models;
 
 namespace StudentExercisesAPI.Controllers
@@ -13,18 +14,24 @@ namespace StudentExercisesAPI.Controllers
     [ApiController]
     public class InstructorsController : ControllerBase
     {
+        private readonly IConfiguration configuration;
+
+        public InstructorsController(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+        }
+        
         public SqlConnection Connection
         {
             get
             {
-                string connectionSTring = "Server=localhost\\SQLExpress;Database=StudentExercisesDB;Integrated Security=true";
-                return new SqlConnection(connectionSTring);
+                return new SqlConnection(configuration.GetConnectionString("DefaultConnection"));
             }
         }
 
         // GET: api/Instructors
         [HttpGet]
-        public IEnumerable<Instructor> Get()
+        public IActionResult Get()
         {
             using (SqlConnection conn = Connection)
             {
@@ -57,13 +64,20 @@ namespace StudentExercisesAPI.Controllers
                     }
 
                     reader.Close();
-                    return instructors;
+                    if (instructors.Count == 0)
+                    {
+                        return NoContent();
+                    }
+                    else
+                    {
+                        return Ok(instructors);
+                    }
                 }
             }
         }
 
         // GET: api/Instructors/5
-        [HttpGet("{id}", Name = "GetInstructor")]
+        [HttpGet("{id}", Name = "GetSingleInstructor")]
         public Instructor Get(int id)
         {
             using (SqlConnection conn = Connection)
@@ -121,7 +135,7 @@ namespace StudentExercisesAPI.Controllers
 
                     int newId = (int)cmd.ExecuteScalar();
                     newInstructor.Id = newId;
-                    return CreatedAtRoute("GetInstructor", new { id = newId }, newInstructor);
+                    return CreatedAtRoute("GetSingleInstructor", new { id = newId }, newInstructor);
                 }
             }
         }
