@@ -47,15 +47,16 @@ namespace StudentExercisesAPI.Controllers
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = @"select c.id, c.[name], 
-                                                s.id AS StudentId, s.FirstName AS StudentFirstname, 
-                                                s.LastName AS StudentLastName, 
-                                                s.SlackHandle AS StudentSlackHandle,
-                                                i.id AS InstructorId, i.FirstName AS InstructorFirstName,
-                                                i.LastName AS InstructorLastName, 
-                                                i.SlackHandle AS InstructorSlackHandle
-                                            from cohort c inner join student s on c.id = s.cohortid
-                                                inner join Instructor i on c.id = i.CohortId
-                                            where c.id = @id;";
+                                               s.id AS StudentId, s.FirstName AS StudentFirstname, 
+                                               s.LastName AS StudentLastName, 
+                                               s.SlackHandle AS StudentSlackHandle,
+                                               i.id AS InstructorId, i.FirstName AS InstructorFirstName,
+                                               i.LastName AS InstructorLastName, 
+                                               i.SlackHandle AS InstructorSlackHandle
+                                          from cohort c 
+                                               left join student s on c.id = s.cohortid
+                                               left join Instructor i on c.id = i.CohortId
+                                         where c.id = @id;";
                     cmd.Parameters.Add(new SqlParameter("@id", id));
                     SqlDataReader reader = cmd.ExecuteReader();
 
@@ -71,34 +72,40 @@ namespace StudentExercisesAPI.Controllers
                             };
                         }
 
-                        int studentId = reader.GetInt32(reader.GetOrdinal("StudentId"));
-                        if (!cohort.Students.Any(s => s.Id == studentId))
+                        if (! reader.IsDBNull(reader.GetOrdinal("StudentId")))
                         {
-                            Student student = new Student
+                            int studentId = reader.GetInt32(reader.GetOrdinal("StudentId"));
+                            if (!cohort.Students.Any(s => s.Id == studentId))
                             {
-                                Id = studentId,
-                                FirstName = reader.GetString(reader.GetOrdinal("StudentFirstName")),
-                                LastName = reader.GetString(reader.GetOrdinal("StudentLastName")),
-                                SlackHandle = reader.GetString(reader.GetOrdinal("StudentSlackHandle")),
-                                CohortId = cohort.Id
-                            };
-                            cohort.Students.Add(student);
+                                Student student = new Student
+                                {
+                                    Id = studentId,
+                                    FirstName = reader.GetString(reader.GetOrdinal("StudentFirstName")),
+                                    LastName = reader.GetString(reader.GetOrdinal("StudentLastName")),
+                                    SlackHandle = reader.GetString(reader.GetOrdinal("StudentSlackHandle")),
+                                    CohortId = cohort.Id
+                                };
+                                cohort.Students.Add(student);
+                            }
                         }
 
 
-                        int instructorId = reader.GetInt32(reader.GetOrdinal("InstructorId"));
-                        if (!cohort.Instructors.Any(i => i.Id == instructorId))
+                        if (!reader.IsDBNull(reader.GetOrdinal("InstructorId")))
                         {
-                            Instructor instructor = new Instructor
+                            int instructorId = reader.GetInt32(reader.GetOrdinal("InstructorId"));
+                            if (!cohort.Instructors.Any(i => i.Id == instructorId))
                             {
-                                Id = reader.GetInt32(reader.GetOrdinal("InstructorId")),
-                                FirstName = reader.GetString(reader.GetOrdinal("InstructorFirstName")),
-                                LastName = reader.GetString(reader.GetOrdinal("InstructorLastName")),
-                                SlackHandle = reader.GetString(reader.GetOrdinal("InstructorSlackHandle")),
-                                CohortId = cohort.Id
-                            };
+                                Instructor instructor = new Instructor
+                                {
+                                    Id = reader.GetInt32(reader.GetOrdinal("InstructorId")),
+                                    FirstName = reader.GetString(reader.GetOrdinal("InstructorFirstName")),
+                                    LastName = reader.GetString(reader.GetOrdinal("InstructorLastName")),
+                                    SlackHandle = reader.GetString(reader.GetOrdinal("InstructorSlackHandle")),
+                                    CohortId = cohort.Id
+                                };
 
-                            cohort.Instructors.Add(instructor);
+                                cohort.Instructors.Add(instructor);
+                            }
                         }
                     }
 
